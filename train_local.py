@@ -312,7 +312,7 @@ def unfreeze_params(params):
 
 
 @torch.no_grad()
-def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, mapper_local, vae, device, guidance_scale, seed=None, llambda=1):
+def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, mapper_local, vae, device, guidance_scale, seed=None, llambda=1, num_steps=100):
     scheduler = LMSDiscreteScheduler(
         beta_start=0.00085,
         beta_end=0.012,
@@ -339,7 +339,7 @@ def validation(example, tokenizer, image_encoder, text_encoder, unet, mapper, ma
         )
 
     latents = latents.to(example["pixel_values_clip"])
-    scheduler.set_timesteps(100)
+    scheduler.set_timesteps(num_steps)
     latents = latents * scheduler.init_noise_sigma
 
     placeholder_idx = example["index"]

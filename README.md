@@ -64,6 +64,17 @@ bash inference_local.sh
 ```
 If you want to test your customized dataset, you should align the image to ensure the object is at the center of image, and also provide the corresponding object mask. The object mask can be obtained by [image-matting-app](https://huggingface.co/spaces/SankarSrin/image-matting-app), or other image matting methods.
 
+
+### Gradio Demo
+
+We also provide a UI for testing our method that is built with gradio. This demo also supports generating new directions on the fly! Running the following command in a terminal will launch the demo:
+
+```python
+python app_gradio.py
+```
+
+Or you can try the online demo [here](https://huggingface.co/spaces/ELITE-library/ELITE).
+
 ## Training
 
 ### Preparing Dataset

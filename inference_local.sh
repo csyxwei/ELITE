@@ -1,4 +1,6 @@
-export MODEL_NAME="CompVis/stable-diffusion-v1-4"
+export HF_HUB_OFFLINE=True
+export MODEL_NAME="runwayml/stable-diffusion-v1-5"
+# export MODEL_NAME="CompVis/stable-diffusion-v1-4"
 export DATA_DIR='./test_datasets/'
 CUDA_VISIBLE_DEVICES=0 python inference_local.py \
   --pretrained_model_name_or_path=$MODEL_NAME \

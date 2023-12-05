@@ -10,6 +10,7 @@ from PIL import Image
 from tqdm.auto import tqdm
 from transformers import CLIPTextModel, CLIPTokenizer, CLIPVisionModel
 
+from control_modules.wrappers import ControlNetUnet, IPAdapterUnet
 from datasets import CustomDatasetWithBG
 from train_local import (
     Mapper,
@@ -19,6 +20,11 @@ from train_local import (
     th2image,
     validation,
 )
+
+control_dict = {
+    "ip-adapter": IPAdapterUnet,
+    "controlnet": ControlNetUnet,
+}
 
 
 def _pil_from_latents(
@@ -56,6 +62,7 @@ def pww_load_tools(
     mapper_local_model_path: Optional[str] = None,
     diffusion_model_path: Optional[str] = None,
     model_token: Optional[str] = None,
+    control_type: str = "controlnet",
 ) -> Tuple[UNet2DConditionModel, CLIPTextModel, CLIPTokenizer, AutoencoderKL, CLIPVisionModel, Mapper, MapperLocal, LMSDiscreteScheduler,]:
     # 'CompVis/stable-diffusion-v1-4'
     local_path_only = diffusion_model_path is not None
@@ -85,7 +92,14 @@ def pww_load_tools(
         if _module.__class__.__name__ == "CLIPTextTransformer":
             _module.__class__.__call__ = inj_forward_text
 
-    unet = UNet2DConditionModel.from_pretrained(
+    # Set up the unet with control modules
+    if control_type:
+        unet_model = control_dict[control_type]
+    elif not control_type:
+        unet_model = UNet2DConditionModel
+    else:
+        raise ValueError(f"Unknown control type: {control_type}! Supported control types: {control_dict.keys()}.")
+    unet = unet_model.from_pretrained(
         diffusion_model_path,
         subfolder="unet",
         use_auth_token=model_token,
@@ -310,6 +324,13 @@ def parse_args():
         help="A seed for testing.",
     )
 
+    parser.add_argument(
+        "--control_type",
+        type=str,
+        default=None,
+        help="Type of control module.",
+    )
+
     args = parser.parse_args()
     return args
 
@@ -341,6 +362,7 @@ if __name__ == "__main__":
         diffusion_model_path=args.pretrained_model_name_or_path,
         mapper_model_path=args.global_mapper_path,
         mapper_local_model_path=args.local_mapper_path,
+        control_type=args.control_type,
     )
 
     train_dataset = CustomDatasetWithBG(

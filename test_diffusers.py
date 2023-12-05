@@ -2,4 +2,7 @@
 from diffusers import DiffusionPipeline
 
 repo_id = "runwayml/stable-diffusion-v1-5"
-pipe = DiffusionPipeline.from_pretrained(repo_id, use_safetensors=True)
+pipe = DiffusionPipeline.from_pretrained(
+    repo_id,
+    use_safetensors=True,
+)

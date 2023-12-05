@@ -44,7 +44,7 @@ If you have already cloned the repo, then you won't need to go through these ste
 
 ### Customized Generation
 
-We provide some testing images in [test_datasets](./test_datasets), which contains both images and object masks. For testing, you can run, 
+We provide some testing images in [test_datasets](./test_datasets), which contains both images and object masks. For testing, you can run,
 ```
 export MODEL_NAME="CompVis/stable-diffusion-v1-4"
 export DATA_DIR='./test_datasets/'
@@ -84,7 +84,7 @@ We use the **test** dataset of Open-Images V6 to train our ELITE. You can prepar
 - Download Open-Images test dataset from [CVDF's site](https://github.com/cvdfoundation/open-images-dataset#download-images-with-bounding-boxes-annotations) and unzip it to the directory `datasets/Open_Images/images/test`.
 - Download class names file `oidv6-class-descriptions.csv` of Open-Images test dataset from [Open-Images official site](https://storage.googleapis.com/openimages/web/download_v7.html#download-manually) and save it to the directory `datasets/Open_Images/annotations/`.
 - Download bbox annotations file `test-annotations-bbox.csv` of Open-Images test dataset from [Open-Images official site](https://storage.googleapis.com/openimages/web/download_v7.html#download-manually) and save it to the directory `datasets/Open_Images/annotations/`.
-- Download segmentation annotations of Open-Images test dataset from [Open-Images official site](https://storage.googleapis.com/openimages/web/download_v7.html#download-manually) and unzip them to the directory `datasets/Open_Images/segs/test`. And put the `test-annotations-object-segmentation.csv` into `datasets/Open_Images/annotations/`. 
+- Download segmentation annotations of Open-Images test dataset from [Open-Images official site](https://storage.googleapis.com/openimages/web/download_v7.html#download-manually) and unzip them to the directory `datasets/Open_Images/segs/test`. And put the `test-annotations-object-segmentation.csv` into `datasets/Open_Images/annotations/`.
 - Obtain the mask bbox by running the following command:
     ```shell
     python data_scripts/cal_bbox_by_seg.py

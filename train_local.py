@@ -646,31 +646,32 @@ def validation(
             latents,
             t,
         )
-        noise_pred_text = unet(
-            latent_model_input,
-            t,
-            encoder_hidden_states={
-                "CONTEXT_TENSOR": encoder_hidden_states,
-                "LOCAL": inj_embedding_local,
-                "LOCAL_INDEX": placeholder_idx.detach(),
-                "LAMBDA": llambda,
-            },
-        ).sample
-        value_local_list.clear()
-        latent_model_input = scheduler.scale_model_input(
-            latents,
-            t,
-        )
+        with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=True):
+            noise_pred_text = unet(
+                latent_model_input,
+                t,
+                encoder_hidden_states={
+                    "CONTEXT_TENSOR": encoder_hidden_states,
+                    "LOCAL": inj_embedding_local,
+                    "LOCAL_INDEX": placeholder_idx.detach(),
+                    "LAMBDA": llambda,
+                },
+            ).sample
+            value_local_list.clear()
+            latent_model_input = scheduler.scale_model_input(
+                latents,
+                t,
+            )
 
-        noise_pred_uncond = unet(
-            latent_model_input,
-            t,
-            encoder_hidden_states={
-                "CONTEXT_TENSOR": uncond_embeddings,
-            },
-        ).sample
-        value_local_list.clear()
-        noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
+            noise_pred_uncond = unet(
+                latent_model_input,
+                t,
+                encoder_hidden_states={
+                    "CONTEXT_TENSOR": uncond_embeddings,
+                },
+            ).sample
+            value_local_list.clear()
+            noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
 
         # compute the previous noisy sample x_t -> x_t-1
         latents = scheduler.step(

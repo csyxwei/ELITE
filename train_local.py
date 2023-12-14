@@ -640,7 +640,11 @@ def validation(
         1,
     )
     inj_embedding_local = inj_embedding_local * mask
-
+    
+    ctrl_emb = None
+    if "img_path" in example:
+        ctrl_img =  Image.open(example["img_path"][0])
+        ctrl_emb, _ = unet.get_ctrl_embeds(ctrl_img)
     for t in tqdm(scheduler.timesteps):
         latent_model_input = scheduler.scale_model_input(
             latents,
@@ -655,6 +659,7 @@ def validation(
                     "LOCAL": inj_embedding_local,
                     "LOCAL_INDEX": placeholder_idx.detach(),
                     "LAMBDA": llambda,
+                    "CTRL_EMB": ctrl_emb,
                 },
             ).sample
             value_local_list.clear()

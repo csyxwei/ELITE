@@ -188,6 +188,7 @@ class CustomDatasetWithBG(Dataset):
         ).input_ids[0]
 
         image = Image.open(self.image_paths[i % self.num_images])
+        example["img_path"] = self.image_paths[i % self.num_images]
 
         mask_path = (
             self.image_paths[i % self.num_images]

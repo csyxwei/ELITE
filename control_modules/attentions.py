@@ -32,6 +32,7 @@ class CrossAttentionIPAdapter(CrossAttention):
         dropout=0.0,
         lam=1,
         num_tokens=4,
+        ctrl_scale=1.0,
         *args,
         **kwargs
     ):
@@ -49,6 +50,7 @@ class CrossAttentionIPAdapter(CrossAttention):
         self.heads = heads
         self.lam = lam
         self.num_tokens = num_tokens
+        self.ctrl_scale = ctrl_scale
 
         # Here are the weights for q, k ,v
         self.to_q = nn.Linear(query_dim, inner_dim, bias=False)
@@ -165,7 +167,7 @@ class CrossAttentionIPAdapter(CrossAttention):
             # get output from ip adapter
             ip_adapter_context = context["CTRL_EMB"] if "CTRL_EMB" in context else None
             if ip_adapter_context is not None:
-                hidden_states += self.compute_ip_attn(hidden_states_ipadapter, ip_adapter_context, attention_mask)
+                hidden_states += self.ctrl_scale * self.compute_ip_attn(hidden_states_ipadapter, ip_adapter_context, attention_mask)
 
             hidden_states = self.reshape_batch_dim_to_heads(hidden_states)
             # linear proj

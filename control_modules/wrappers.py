@@ -41,6 +41,7 @@ class IPAdapterWrapper:
         self.image_encoder_path = args.image_encoder_path
         self.ip_ckpt = args.ip_ckpt
         self.num_tokens = args.num_tokens
+        self.ctrl_scale = args.ctrl_scale
 
         # load image encoder
         self.image_encoder = CLIPVisionModelWithProjection.from_pretrained(self.image_encoder_path).to(self.device, dtype=torch.float16)
@@ -87,7 +88,7 @@ class IPAdapterWrapper:
                     "to_v_ip.weight": ipadapter_sd[f"{i*2+1}.to_v_ip.weight"],
                 }
                 i += 1
-                attn_layers[name] = CrossAttentionIPAdapter(query_dim, inner_dim, context_dim=context_dim, heads=heads, dim_head=dim_head, dropout=dropout)
+                attn_layers[name] = CrossAttentionIPAdapter(query_dim, inner_dim, context_dim=context_dim, heads=heads, dim_head=dim_head, dropout=dropout, ctrl_scale=self.ctrl_scale)
                 attn_layers[name].load_state_dict(weights)
         self.set_attn2_layers(attn_layers) 
     

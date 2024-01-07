@@ -310,6 +310,13 @@ def parse_args():
         help="A seed for testing.",
     )
 
+    parser.add_argument(
+        "--add_control",
+        type=bool,
+        default=False,
+        help="Add control module.",
+    )
+
     args = parser.parse_args()
     return args
 
@@ -385,6 +392,7 @@ if __name__ == "__main__":
             5,
             seed=args.seed,
             llambda=float(args.llambda),
+            add_control=args.add_control,
         )
         concat = np.concatenate(
             (

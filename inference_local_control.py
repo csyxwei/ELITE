@@ -362,6 +362,27 @@ def parse_args():
         help="Path to pretrained image encoder.",
     )
 
+    parser.add_argument(
+        "--add_control",
+        type=bool,
+        default=True,
+        help="Add control module.",
+    )
+
+    parser.add_argument(
+        "--ctrl_scale",
+        type=float,
+        default=1.0,
+        help="Scale of control module.",
+    )
+
+    parser.add_argument(
+        "--ctrl_img_path",
+        type=str,
+        default=None,
+        help="the img for the control module.",
+    )
+
     args = parser.parse_args()
     return args
 
@@ -422,7 +443,7 @@ if __name__ == "__main__":
         batch["pixel_values_seg"] = batch["pixel_values_seg"].to("cuda:0").half()
         batch["input_ids"] = batch["input_ids"].to("cuda:0")
         batch["index"] = batch["index"].to("cuda:0").long()
-        batch["ctrl_img_path"] = batch["img_path"]
+        batch["ctrl_img_path"] = [args.ctrl_img_path] if args.ctrl_img_path else batch["img_path"]
         print(
             step,
             batch["text"],
@@ -440,6 +461,7 @@ if __name__ == "__main__":
             5,
             seed=args.seed,
             llambda=float(args.llambda),
+            add_control=args.add_control,
         )
         concat = np.concatenate(
             (

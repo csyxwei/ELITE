@@ -523,6 +523,7 @@ def validation(
     seed=None,
     llambda=1,
     num_steps=100,
+    **kwargs,
 ):
     scheduler = LMSDiscreteScheduler(
         beta_start=0.00085,
@@ -642,8 +643,8 @@ def validation(
     inj_embedding_local = inj_embedding_local * mask
     
     ctrl_emb = None
-    if "img_path" in example:
-        ctrl_img =  Image.open(example["img_path"][0])
+    if kwargs["add_control"]:
+        ctrl_img =  Image.open(example["ctrl_img_path"][0])
         ctrl_emb, _ = unet.get_ctrl_embeds(ctrl_img)
     for t in tqdm(scheduler.timesteps):
         latent_model_input = scheduler.scale_model_input(

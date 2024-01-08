@@ -10,15 +10,20 @@ from PIL import Image
 from tqdm.auto import tqdm
 from transformers import CLIPTextModel, CLIPTokenizer, CLIPVisionModel
 
+from control_modules.wrappers import IPAdapterWrapper, ControlNetWrapper
 from datasets import CustomDatasetWithBG
 from train_local import (
     Mapper,
     MapperLocal,
-    inj_forward_crossattention,
     inj_forward_text,
     th2image,
     validation,
 )
+
+wrapper_dict = {
+    "ip-adapter": IPAdapterWrapper,
+    "controlnet": ControlNetWrapper,
+}
 
 
 def _pil_from_latents(
@@ -56,6 +61,7 @@ def pww_load_tools(
     mapper_local_model_path: Optional[str] = None,
     diffusion_model_path: Optional[str] = None,
     model_token: Optional[str] = None,
+    **kwargs,
 ) -> Tuple[UNet2DConditionModel, CLIPTextModel, CLIPTokenizer, AutoencoderKL, CLIPVisionModel, Mapper, MapperLocal, LMSDiscreteScheduler,]:
     # 'CompVis/stable-diffusion-v1-4'
     local_path_only = diffusion_model_path is not None
@@ -92,6 +98,19 @@ def pww_load_tools(
         torch_dtype=torch.float16,
         local_files_only=local_path_only,
     )
+    unet.half()
+
+    # Refactor the unet with selected wrapper
+    try:
+        args = kwargs["args"]
+    except KeyError:
+        raise KeyError("args is not fed in!!")
+    control_type = args.control_type
+    if control_type:
+        wrapper = wrapper_dict[control_type]
+        unet = wrapper(unet, args=args)
+    else:
+        raise ValueError(f"Unknown control type: {control_type}! Supported control types: {wrapper_dict.keys()}.")
 
     mapper = Mapper(
         input_dim=1024,
@@ -107,10 +126,9 @@ def pww_load_tools(
         _name,
         _module,
     ) in unet.named_modules():
-        if _module.__class__.__name__ == "CrossAttention":
+        if "CrossAttention" in _module.__class__.__name__:
             if "attn1" in _name:
                 continue
-            _module.__class__.__call__ = inj_forward_crossattention
 
             shape = _module.to_k.weight.shape
             to_k_global = nn.Linear(
@@ -158,7 +176,8 @@ def pww_load_tools(
         torch.load(
             mapper_model_path,
             map_location="cpu",
-        )
+        ),
+        strict=True,
     )
     mapper.half()
 
@@ -166,7 +185,8 @@ def pww_load_tools(
         torch.load(
             mapper_local_model_path,
             map_location="cpu",
-        )
+        ),
+        strict=True,
     )
     mapper_local.half()
 
@@ -176,7 +196,7 @@ def pww_load_tools(
     ) in unet.named_modules():
         if "attn1" in _name:
             continue
-        if _module.__class__.__name__ == "CrossAttention":
+        if "CrossAttention" in _module.__class__.__name__:
             _module.add_module(
                 "to_k_global",
                 mapper.__getattr__(f'{_name.replace(".", "_")}_to_k'),
@@ -234,14 +254,14 @@ def parse_args():
     parser.add_argument(
         "--global_mapper_path",
         type=str,
-        required=True,
+        default="./checkpoints/global_mapper.pt",
         help="Path to pretrained global mapping network.",
     )
 
     parser.add_argument(
         "--local_mapper_path",
         type=str,
-        required=True,
+        default="./checkpoints/local_mapper.pt",
         help="Path to pretrained local mapping network.",
     )
 
@@ -269,16 +289,14 @@ def parse_args():
     parser.add_argument(
         "--test_data_dir",
         type=str,
-        default=None,
-        required=True,
+        default="./test_datasets/",
         help="A folder containing the testing data.",
     )
 
     parser.add_argument(
         "--pretrained_model_name_or_path",
         type=str,
-        default=None,
-        required=True,
+        default="runwayml/stable-diffusion-v1-5",
         help="Path to pretrained model or model identifier from huggingface.co/models.",
     )
 
@@ -311,10 +329,58 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--control_type",
+        type=str,
+        default="ip-adapter",
+        help="Type of control module.",
+    )
+
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda",
+    )
+
+    parser.add_argument(
+        "--num_tokens",
+        type=int,
+        default=4,
+        help="Number of tokens for control module.",
+    )
+
+    parser.add_argument(
+        "--ip_ckpt",
+        type=str,
+        default="models/ip-adapter_sd15.bin",
+        help="Path to pretrained ip adapter.",
+    )
+
+    parser.add_argument(
+        "--image_encoder_path",
+        type=str,
+        default="models/image_encoder/",
+        help="Path to pretrained image encoder.",
+    )
+
+    parser.add_argument(
         "--add_control",
         type=bool,
-        default=False,
+        default=True,
         help="Add control module.",
+    )
+
+    parser.add_argument(
+        "--ctrl_scale",
+        type=float,
+        default=1.0,
+        help="Scale of control module.",
+    )
+
+    parser.add_argument(
+        "--ctrl_img_path",
+        type=str,
+        default=None,
+        help="the img for the control module.",
     )
 
     args = parser.parse_args()
@@ -348,6 +414,8 @@ if __name__ == "__main__":
         diffusion_model_path=args.pretrained_model_name_or_path,
         mapper_model_path=args.global_mapper_path,
         mapper_local_model_path=args.local_mapper_path,
+        control_type=args.control_type,
+        args=args,
     )
 
     train_dataset = CustomDatasetWithBG(
@@ -375,6 +443,7 @@ if __name__ == "__main__":
         batch["pixel_values_seg"] = batch["pixel_values_seg"].to("cuda:0").half()
         batch["input_ids"] = batch["input_ids"].to("cuda:0")
         batch["index"] = batch["index"].to("cuda:0").long()
+        batch["ctrl_img_path"] = [args.ctrl_img_path] if args.ctrl_img_path else batch["img_path"]
         print(
             step,
             batch["text"],

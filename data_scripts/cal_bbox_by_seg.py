@@ -1,14 +1,15 @@
-import cv2
-from os.path import join
 import os
+from os.path import join
+
+import cv2
 import numpy as np
 from tqdm import tqdm
 
-dir = './datasets/Open_Images/'
-mode = 'test'
+dir = "./datasets/Open_Images/"
+mode = "test"
 
-image_dir = join(dir, 'images', mode)
-seg_dir = join(dir, 'segs', mode)
+image_dir = join(dir, "images", mode)
+seg_dir = join(dir, "segs", mode)
 
 files = os.listdir(seg_dir)
 
@@ -16,7 +17,7 @@ data_dict = {}
 
 for file in tqdm(files):
     seg_path = join(seg_dir, file)
-    image_path = join(image_dir, file.split('_')[0] + '.jpg')
+    image_path = join(image_dir, file.split("_")[0] + ".jpg")
     seg = cv2.imread(seg_path)
     image = cv2.imread(image_path)
     seg = cv2.resize(seg, (image.shape[1], image.shape[0]), interpolation=cv2.INTER_NEAREST)
@@ -56,4 +57,4 @@ for file in tqdm(files):
 
     data_dict[file] = [cntr, hs, he, ws, we]
 
-np.save(join(dir, 'segs', f'{mode}_bbox_dict.npy'), data_dict)
+np.save(join(dir, "segs", f"{mode}_bbox_dict.npy"), data_dict)
